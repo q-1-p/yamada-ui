@@ -1,9 +1,4 @@
-import type {
-  CSSUIObject,
-  CSSUIProps,
-  HTMLUIProps,
-  ThemeProps,
-} from "@yamada-ui/core"
+import type { CSSUIProps, HTMLUIProps, ThemeProps } from "@yamada-ui/core"
 import {
   forwardRef,
   omitThemeProps,
@@ -34,14 +29,6 @@ export const InputGroup = forwardRef<InputGroupProps, "div">((props, ref) => {
   const height = variableProps.height ?? variableProps.h
   const fieldHeight = minHeight ?? height
   const fieldFontSize = variableProps.fontSize
-
-  const css: CSSUIObject = {
-    display: "flex",
-    position: "relative",
-    vars,
-    width: "100%",
-    ...styles.container,
-  }
 
   const groupProps: CSSUIProps = {}
 
@@ -87,7 +74,10 @@ export const InputGroup = forwardRef<InputGroupProps, "div">((props, ref) => {
         ref={ref}
         className={cx("ui-input-group", className)}
         role="group"
-        __css={css}
+        __css={{
+          vars,
+          ...styles.container,
+        }}
         {...rest}
       >
         {cloneChildren}

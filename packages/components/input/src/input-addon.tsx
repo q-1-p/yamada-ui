@@ -1,4 +1,4 @@
-import type { CSSUIObject, HTMLUIProps } from "@yamada-ui/core"
+import type { HTMLUIProps } from "@yamada-ui/core"
 import { forwardRef, ui } from "@yamada-ui/core"
 import { cx } from "@yamada-ui/utils"
 import { useInputGroup } from "./input-context"
@@ -29,21 +29,14 @@ const InputAddon = forwardRef<InputAddonProps, "div">(
       },
     }
 
-    const css: CSSUIObject = {
-      alignItems: "center",
-      display: "flex",
-      flex: "0 0 auto",
-      w: "auto",
-      whiteSpace: "nowrap",
-      ...styles.addon,
-      ...placementStyles[placement],
-    }
-
     return (
       <ui.div
         ref={ref}
         className={cx("ui-input__addon", className)}
-        __css={css}
+        __css={{
+          ...styles.addon,
+          ...placementStyles[placement],
+        }}
         {...rest}
       />
     )

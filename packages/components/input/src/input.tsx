@@ -1,7 +1,6 @@
 import type {
   ColorModeToken,
   CSS,
-  CSSUIObject,
   HTMLUIProps,
   ThemeProps,
 } from "@yamada-ui/core"
@@ -50,14 +49,15 @@ export const Input = forwardRef<InputProps, "input">((props, ref) => {
 
   rest = useFormControlProps(rest)
 
-  const css: CSSUIObject = { ...styles.field, ...__css }
-
   return (
     <ui.input
       ref={ref}
       className={cx("ui-input", className)}
       size={htmlSize}
-      __css={css}
+      __css={{
+        ...styles.field,
+        ...__css,
+      }}
       {...rest}
     />
   )
