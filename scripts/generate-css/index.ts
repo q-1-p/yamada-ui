@@ -1,11 +1,11 @@
 import type * as CSS from "csstype"
 import type { additionalProps, atRuleProps, uiProps } from "./ui-props"
 import * as p from "@clack/prompts"
+import bcd from "@mdn/browser-compat-data"
 import { isUndefined, toCamelCase } from "@yamada-ui/utils"
 import c from "chalk"
 import { writeFile } from "fs/promises"
 import { glob } from "glob"
-import { JSDOM } from "jsdom"
 import ListIt from "list-it"
 import {
   createProgram,
@@ -15,7 +15,6 @@ import {
 import { excludeProps } from "./exclude-props"
 import { generateStyles } from "./styles"
 
-const SOURCE_URL = "https://developer.mozilla.org"
 export const OUT_PATH = "packages/core/src/styles.ts"
 
 export type CSSProperty = ReturnType<typeof getCSSProperties>[number]
@@ -44,44 +43,37 @@ const duplicatedList = new ListIt({
   headerUnderline: true,
 })
 
-const getDoc = async (type: "CSS" | "SVG") => {
-  const res = await fetch(SOURCE_URL + `/docs/Web/${type}`)
-  const data = await res.text()
+const getCSSProperties = () => {
+  const { css, svg } = bcd
+  const cssProperties = Object.keys(css.properties as object)
+  const svgAttributes = Object.keys(svg.global_attributes as object)
 
-  const dom = new JSDOM(data)
-
-  return dom.window.document
-}
-
-const getCSSProperties = (doc: Document) => {
-  const list = doc.querySelectorAll(".sidebar-body details")
-
-  const item = Array.from(list).find((item) => {
-    const summary = item.querySelector("summary")
-    const title = summary?.textContent?.trim()
-
-    return title === "Properties" || title === "Attributes"
-  })
-
-  const els = item?.querySelectorAll("li a") as HTMLAnchorElement[] | undefined
-
-  if (!els) return []
-
-  return Array.from(els)
-    .filter(
-      ({ textContent }) => textContent && !/^(-moz|-webkit)/.test(textContent),
-    )
-    .map(({ href, textContent }) => {
-      const prop = textContent?.includes("-")
-        ? toCamelCase(textContent)
-        : (textContent ?? "")
+  const cssData = cssProperties
+    .filter((property) => !/^(-moz|-webkit)/.test(property))
+    .map((property) => {
+      const prop = property.includes("-") ? toCamelCase(property) : property
 
       return {
-        name: textContent ?? "",
-        prop: prop as CSSProperties,
-        url: SOURCE_URL + href,
+        name: property,
+        prop,
+        url: css.properties?.[property]?.__compat?.mdn_url,
       }
     })
+
+  const svgData = svgAttributes.map((attribute) => {
+    const prop = attribute.includes("-") ? toCamelCase(attribute) : attribute
+
+    return {
+      name: attribute,
+      prop,
+      url: svg.global_attributes?.[attribute]?.__compat?.mdn_url,
+    }
+  })
+
+  return [
+    ...cssData,
+    ...svgData.filter((attr) => !cssProperties.includes(attr.name)),
+  ]
 }
 
 const getCSSTypes = async () => {
@@ -172,7 +164,7 @@ const excludeProperties = (
   let pickedProperties: CSSProperty[] = []
 
   const excludedProperties = cssProperties.filter((property) => {
-    const isExclude = excludeProps.includes(property.prop)
+    const isExclude = (excludeProps as string[]).includes(property.prop)
 
     if (isExclude) pickedProperties = [...pickedProperties, property]
 
@@ -208,24 +200,11 @@ const main = async () => {
 
     s.stop(`Got the "csstype" module`)
 
-    s.start(`Getting the "MDN Web Docs" document`)
-
-    const cssDoc = await getDoc("CSS")
-    const svgDoc = await getDoc("SVG")
-
-    s.stop(`Got the "MDN Web Docs" document`)
-
-    const cssProperties = getCSSProperties(cssDoc)
-    const svgProperties = getCSSProperties(svgDoc)
-    const exitsProperties = cssProperties.map(({ name }) => name)
-    const resolvedProperties = [
-      ...cssProperties,
-      ...svgProperties.filter(({ name }) => !exitsProperties.includes(name)),
-    ]
+    const properties = getCSSProperties()
 
     const typeProperties = Object.keys(cssTypes)
     const omittedProperties = omitProperties(
-      resolvedProperties,
+      properties,
       typeProperties,
       (message) => {
         p.note(message, `Omitted properties that are not present in "csstype"`)
