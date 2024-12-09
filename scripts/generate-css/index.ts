@@ -55,7 +55,7 @@ const getCSSProperties = () => {
 
       return {
         name: property,
-        prop,
+        prop: prop as CSSProperties,
         url: css.properties?.[property]?.__compat?.mdn_url,
       }
     })
@@ -65,7 +65,7 @@ const getCSSProperties = () => {
 
     return {
       name: attribute,
-      prop,
+      prop: prop as CSSProperties,
       url: svg.global_attributes?.[attribute]?.__compat?.mdn_url,
     }
   })
@@ -164,7 +164,7 @@ const excludeProperties = (
   let pickedProperties: CSSProperty[] = []
 
   const excludedProperties = cssProperties.filter((property) => {
-    const isExclude = (excludeProps as string[]).includes(property.prop)
+    const isExclude = excludeProps.includes(property.prop)
 
     if (isExclude) pickedProperties = [...pickedProperties, property]
 
