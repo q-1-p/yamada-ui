@@ -2,7 +2,7 @@ import c from "chalk"
 import { Command } from "commander"
 import path from "path"
 import pkg from "../package.json"
-import { actionTheme, actionTokens, add, themePath } from "./command"
+import { actionTheme, actionTokens, add, migrate, themePath } from "./command"
 import { initCLI } from "./utils"
 
 export const run = async () => {
@@ -28,7 +28,7 @@ export const run = async () => {
     .option("-r, --replace", "Force replace the theme")
     .action(actionTheme)
 
-  program.addCommand(add)
+  program.addCommand(add).addCommand(migrate)
 
   program.parse()
 }
