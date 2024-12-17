@@ -1,5 +1,5 @@
 import type { ThemeToken, Transforms } from "@yamada-ui/react"
-import type { CSSProperty, Properties } from "."
+import type { BaselineData, CSSProperty, Properties } from "."
 import type { TransformOptions } from "./transform-props"
 import type { UIOptions } from "./ui-props"
 import { pseudoSelectors, toKebabCase } from "@yamada-ui/react"
@@ -75,12 +75,14 @@ const generateType = ({
 }
 
 const generateDocs = ({
+  baselineData,
   deprecated,
   description = [],
   properties,
   urls = [],
 }: {
   properties: string | string[] | undefined
+  baselineData?: BaselineData
   deprecated?: boolean
   description?: string[]
   urls?: string[]
@@ -102,8 +104,34 @@ const generateDocs = ({
       description = [
         ...description,
         "",
-        ...urls.map((url) => `@see Docs ${url}`),
+        ...urls.map((url) => (url !== "" ? `@see Docs ${url}` : "")),
       ]
+
+    if (baselineData) {
+      const { baseline, baseline_high_date, baseline_low_date, support } =
+        baselineData
+      const lowDate = baseline_low_date ?? "-"
+      const highDate = baseline_high_date ?? "-"
+      const basicInfo = [
+        `Scope: \`${baseline}\``,
+        "",
+        `Widely Available Date: \`${highDate}\``,
+        "",
+        `Newly Available Date: \`${lowDate}\``,
+      ]
+      const browsersData: string[] = []
+      support.forEach((value, key) => {
+        browsersData.push(`- ${key.id}${value ? `: ${value.version}` : ""}`)
+      })
+      description = [
+        ...description,
+        "",
+        "Baseline",
+        "",
+        ...basicInfo,
+        ...browsersData,
+      ]
+    }
   }
 
   if (deprecated) description = [...description, "", `@deprecated`]
@@ -112,7 +140,11 @@ const generateDocs = ({
 }
 
 export const generateStyles = async (
-  styles: ({ type: string; deprecated: boolean } & CSSProperty)[],
+  styles: ({
+    type: string
+    baselineData: BaselineData
+    deprecated: boolean
+  } & CSSProperty)[],
 ) => {
   const standardStyles: string[] = []
   const shorthandStyles: string[] = []
@@ -148,12 +180,17 @@ export const generateStyles = async (
     return !isExists
   })
 
-  styles.forEach(({ type, name, deprecated, prop, url }) => {
+  styles.forEach(({ type, name, baselineData, deprecated, prop, url }) => {
     const token = tokenMap[prop]
     const shorthands = shorthandProps[prop]
     const transforms = transformMap[prop]
     const config = generateConfig({ properties: prop, token, transforms })()
-    const docs = generateDocs({ deprecated, properties: name, urls: [url] })
+    const docs = generateDocs({
+      baselineData,
+      deprecated,
+      properties: name,
+      urls: [url],
+    })
 
     type = generateType({ type, prop, token, transforms })
     standardStyles.push(`${prop}: ${config}`)
@@ -205,6 +242,11 @@ export const generateStyles = async (
     const token = tokenMap[prop as Properties]
     const shorthands = shorthandProps[prop as Properties]
     const transforms = transformMap[prop as Properties]
+    const baselineData = relatedStyles.map(
+      ({ baselineData }) => baselineData,
+    )[0]
+
+    console.log(relatedStyles)
 
     type = generateType({
       type: type ?? types,
@@ -222,7 +264,13 @@ export const generateStyles = async (
       transforms,
     })(true)
 
-    const docs = generateDocs({ deprecated, description, properties, urls })
+    const docs = generateDocs({
+      baselineData,
+      deprecated,
+      description,
+      properties,
+      urls,
+    })
 
     targetStyles.push(`${prop}: ${config}`)
     styleProps.push(...[docs, `${prop}?: ${type}`])

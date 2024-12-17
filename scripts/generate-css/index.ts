@@ -2,8 +2,9 @@ import type * as CSS from "csstype"
 import type { additionalProps, atRuleProps, uiProps } from "./ui-props"
 import * as p from "@clack/prompts"
 import bcd from "@mdn/browser-compat-data"
-import { isUndefined, toCamelCase } from "@yamada-ui/utils"
+import { isArray, isUndefined, toCamelCase } from "@yamada-ui/utils"
 import c from "chalk"
+import { baseline } from "compute-baseline"
 import { writeFile } from "fs/promises"
 import { glob } from "glob"
 import ListIt from "list-it"
@@ -27,6 +28,9 @@ export type UIProperties =
   | keyof typeof additionalProps
   | keyof typeof atRuleProps
   | keyof typeof uiProps
+export type BaselineData = {
+  baseline: string
+} & Omit<ReturnType<typeof baseline.computeBaseline>, "baseline">
 
 const omittedList = new ListIt({
   headerColor: "gray",
@@ -52,21 +56,28 @@ const getCSSProperties = () => {
     .filter((property) => !/^(-moz|-webkit)/.test(property))
     .map((property) => {
       const prop = property.includes("-") ? toCamelCase(property) : property
+      const { mdn_url, spec_url } = css.properties?.[property]?.__compat ?? {}
+      const url = mdn_url ?? (isArray(spec_url) ? spec_url[0] : spec_url) ?? ""
 
       return {
         name: property,
         prop: prop as CSSProperties,
-        url: css.properties?.[property]?.__compat?.mdn_url,
+        property_type: "css",
+        url,
       }
     })
 
   const svgData = svgAttributes.map((attribute) => {
     const prop = attribute.includes("-") ? toCamelCase(attribute) : attribute
+    const { mdn_url, spec_url } =
+      svg.global_attributes?.[attribute]?.__compat ?? {}
+    const url = mdn_url ?? (isArray(spec_url) ? spec_url[0] : spec_url) ?? ""
 
     return {
       name: attribute,
       prop: prop as CSSProperties,
-      url: svg.global_attributes?.[attribute]?.__compat?.mdn_url,
+      property_type: "svg",
+      url,
     }
   })
 
@@ -186,6 +197,38 @@ const excludeProperties = (
   return excludedProperties
 }
 
+const computeBaseline = (cssProperties: CSSProperty[]) => {
+  return cssProperties.map((property) => {
+    const compatKey =
+      property.property_type === "css"
+        ? `css.properties.${property.name}`
+        : `svg.global_attributes.${property.name}`
+    const data = baseline.computeBaseline({
+      compatKeys: [compatKey],
+    })
+
+    let baselineData: BaselineData
+    switch (data.baseline) {
+      case "high":
+        baselineData = { ...data, baseline: "Widely available" }
+        break
+      case "low":
+        baselineData = { ...data, baseline: "Newly available" }
+        break
+      case false:
+        baselineData = { ...data, baseline: "Limited available" }
+        break
+      default:
+        baselineData = { ...data, baseline: "" }
+    }
+
+    return {
+      ...property,
+      baselineData,
+    }
+  })
+}
+
 const main = async () => {
   p.intro(c.magenta(`Generating Yamada UI styles`))
 
@@ -217,8 +260,8 @@ const main = async () => {
         p.note(message, `Excluded properties`)
       },
     )
-
-    const styles = excludedProperties
+    const computedProperties = computeBaseline(excludedProperties)
+    const styles = computedProperties
       .map((property) => {
         const { type, deprecated = false } = cssTypes[property.prop] ?? {}
 
