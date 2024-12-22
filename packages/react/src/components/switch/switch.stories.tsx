@@ -1,10 +1,13 @@
 import type { Meta, StoryFn } from "@storybook/react"
 import type { SubmitHandler } from "react-hook-form"
-import { COLOR_SCHEMES } from "@yamada-ui/utils"
+import { COLOR_SCHEMES, dataAttr } from "@yamada-ui/utils"
 import { useId } from "react"
 import { Controller, useForm } from "react-hook-form"
+import { ui } from "../../core"
 import { useBoolean } from "../../hooks/use-boolean"
+import { Box } from "../box"
 import { Button } from "../button"
+import { useCheckbox } from "../checkbox"
 import { Wrap } from "../flex"
 import { Label } from "../form-control"
 import { HStack } from "../stack"
@@ -101,6 +104,48 @@ export const CustomControl: Story = () => {
     <Switch isChecked={isChecked} onChange={toggle}>
       custom control
     </Switch>
+  )
+}
+
+export const CustomHook: Story = () => {
+  const { checked, getIconProps, getInputProps, getLabelProps } = useCheckbox(
+    {},
+  )
+
+  return (
+    <Box as="label" display="inline-flex" gap="sm">
+      <ui.input aria-checked={checked} role="switch" {...getInputProps()} />
+
+      <Box
+        bg={["blackAlpha.400", "whiteAlpha.300"]}
+        boxSizing="content-box"
+        display="inline-flex"
+        p={1}
+        rounded="full"
+        transitionDuration="fast"
+        transitionProperty="common"
+        w={8}
+        _checked={{
+          bg: ["primary.500", "primary.500"],
+        }}
+        {...getIconProps()}
+      >
+        <Box
+          data-checked={dataAttr(checked)}
+          bg="white"
+          h={4}
+          rounded="inherit"
+          transitionDuration="fast"
+          transitionProperty="translate"
+          w={4}
+          _checked={{
+            translate: "100%",
+          }}
+        />
+      </Box>
+
+      <Box {...getLabelProps()}>Switch</Box>
+    </Box>
   )
 }
 
