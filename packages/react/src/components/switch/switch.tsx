@@ -1,4 +1,3 @@
-import type { Transition } from "motion/react"
 import type { InputHTMLAttributes, ReactElement } from "react"
 import type { HTMLUIProps, ThemeProps } from "../../core"
 import type { Merge } from "../../utils"
@@ -12,7 +11,6 @@ import {
 } from "../../core"
 import { cx, dataAttr } from "../../utils"
 import { useCheckbox } from "../checkbox"
-import { motion } from "../motion"
 
 export interface SwitchIconProps {
   active?: boolean
@@ -57,10 +55,6 @@ interface SwitchOptions {
    */
   reverse?: boolean
   /**
-   * Motion transition settings.
-   */
-  transition?: Transition
-  /**
    * Props for switch input element.
    */
   inputProps?: InputHTMLAttributes<HTMLInputElement>
@@ -92,11 +86,6 @@ export const Switch = forwardRef<SwitchProps, "input">((props, ref) => {
     icon,
     isReverse,
     reverse = isReverse,
-    transition = {
-      type: "spring",
-      damping: 40,
-      stiffness: 700,
-    },
     inputProps,
     labelProps,
     ...computedProps
@@ -150,28 +139,25 @@ export const Switch = forwardRef<SwitchProps, "input">((props, ref) => {
       />
 
       {cloneIcon ?? (
-        <motion.div layout layoutRoot>
+        <ui.div
+          className={cx("ui-switch__track", className)}
+          __css={{
+            alignItems: "center",
+            boxSizing: "content-box",
+            display: "inline-flex",
+            flexShrink: 0,
+            ...styles.track,
+          }}
+          {...getIconProps()}
+        >
           <ui.div
-            className={cx("ui-switch__track", className)}
+            className={cx("ui-switch__thumb", className)}
+            data-checked={dataAttr(checked)}
             __css={{
-              alignItems: "center",
-              boxSizing: "content-box",
-              display: "inline-flex",
-              flexShrink: 0,
-              justifyContent: "flex-start",
-              ...styles.track,
+              ...styles.thumb,
             }}
-            {...getIconProps()}
-          >
-            <motion.div
-              className={cx("ui-switch__thumb", className)}
-              data-checked={dataAttr(checked)}
-              layout
-              transition={transition}
-              __css={{ ...styles.thumb }}
-            />
-          </ui.div>
-        </motion.div>
+          />
+        </ui.div>
       )}
 
       {children ? (

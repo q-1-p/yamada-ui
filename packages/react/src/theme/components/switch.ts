@@ -16,15 +16,17 @@ export const Switch: ComponentMultiStyle<"Switch"> = {
     thumb: {
       bg: "white",
       rounded: "inherit",
+      transitionDuration: "fast",
+      transitionProperty: "translate",
+      _checked: {
+        translate: "100%",
+      },
     },
     track: {
       bg: ["blackAlpha.400", "whiteAlpha.300"],
       rounded: "full",
       transitionDuration: "fast",
       transitionProperty: "common",
-      _checked: {
-        justifyContent: "flex-end",
-      },
       _focusVisible: {
         boxShadow: "outline",
       },
