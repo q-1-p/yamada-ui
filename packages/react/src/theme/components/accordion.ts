@@ -18,7 +18,9 @@ export const Accordion: ComponentMultiStyle<"Accordion"> = {
         opacity: 0.4,
       },
     },
-    container: {},
+    container: {
+      w: "100%",
+    },
     icon: {
       color: ["blackAlpha.600", "whiteAlpha.700"],
       fontSize: "1.25em",
