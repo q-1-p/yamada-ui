@@ -4,7 +4,6 @@ import * as p from "@clack/prompts"
 import bcd from "@mdn/browser-compat-data"
 import { isArray, isUndefined, toCamelCase } from "@yamada-ui/utils"
 import c from "chalk"
-import { baseline } from "compute-baseline"
 import { writeFile } from "fs/promises"
 import { glob } from "glob"
 import ListIt from "list-it"
@@ -18,7 +17,16 @@ import { generateStyles } from "./styles"
 
 export const OUT_PATH = "packages/core/src/styles.ts"
 
-export type CSSProperty = ReturnType<typeof getCSSProperties>[number]
+// export type CSSProperty = ReturnType<typeof getCSSProperties>[number]
+export interface CSSProperty {
+  name: string
+  prop: CSSProperties
+  property_type: string
+  url: string
+  features?: { name: string; prop: string; url: string }[]
+  isSkip?: boolean
+}
+
 export type Properties = CSSProperties | UIProperties
 export type CSSProperties =
   | keyof CSS.ObsoleteProperties
@@ -28,9 +36,6 @@ export type UIProperties =
   | keyof typeof additionalProps
   | keyof typeof atRuleProps
   | keyof typeof uiProps
-export type BaselineData = {
-  baseline: string
-} & Omit<ReturnType<typeof baseline.computeBaseline>, "baseline">
 
 const omittedList = new ListIt({
   headerColor: "gray",
@@ -47,9 +52,10 @@ const duplicatedList = new ListIt({
   headerUnderline: true,
 })
 
-const getCSSProperties = () => {
+const getCSSProperties = (): CSSProperty[] => {
   const { css, svg } = bcd
   const cssProperties = Object.keys(css.properties as object)
+  const atRuleProperties = Object.keys(css["at-rules"] as object)
   const svgAttributes = Object.keys(svg.global_attributes as object)
 
   const cssData = cssProperties
@@ -81,9 +87,41 @@ const getCSSProperties = () => {
     }
   })
 
+  const atRuleData = atRuleProperties.map((atRule) => {
+    const prop = atRule.includes("-") ? toCamelCase(atRule) : atRule
+    const { mdn_url, spec_url } = css["at-rules"]?.[atRule]?.__compat ?? {}
+    const url = mdn_url ?? (isArray(spec_url) ? spec_url[0] : spec_url) ?? ""
+
+    const features = Object.keys(css["at-rules"]?.[atRule] as object).map(
+      (key) => {
+        const prop = key.includes("-") ? toCamelCase(key) : key
+        const { mdn_url, spec_url } =
+          css["at-rules"]?.[atRule]?.[key]?.__compat ?? {}
+        const url =
+          mdn_url ?? (isArray(spec_url) ? spec_url[0] : spec_url) ?? ""
+
+        return {
+          name: key,
+          prop,
+          url,
+        }
+      },
+    )
+
+    return {
+      name: atRule,
+      features,
+      isSkip: true,
+      prop: ("_" + prop) as CSSProperties,
+      property_type: "at-rule",
+      url,
+    }
+  })
+
   return [
     ...cssData,
     ...svgData.filter((attr) => !cssProperties.includes(attr.name)),
+    ...atRuleData,
   ]
 }
 
@@ -148,9 +186,10 @@ const omitProperties = (
   const omittedProperties = cssProperties.filter((property) => {
     const hasType = typeProperties.includes(property.prop)
 
-    if (!hasType) pickedProperties = [...pickedProperties, property]
+    if (!hasType && !property.isSkip)
+      pickedProperties = [...pickedProperties, property]
 
-    return hasType
+    return hasType || property.isSkip
   })
 
   if (pickedProperties.length) {
@@ -197,38 +236,6 @@ const excludeProperties = (
   return excludedProperties
 }
 
-const computeBaseline = (cssProperties: CSSProperty[]) => {
-  return cssProperties.map((property) => {
-    const compatKey =
-      property.property_type === "css"
-        ? `css.properties.${property.name}`
-        : `svg.global_attributes.${property.name}`
-    const data = baseline.computeBaseline({
-      compatKeys: [compatKey],
-    })
-
-    let baselineData: BaselineData
-    switch (data.baseline) {
-      case "high":
-        baselineData = { ...data, baseline: "Widely available" }
-        break
-      case "low":
-        baselineData = { ...data, baseline: "Newly available" }
-        break
-      case false:
-        baselineData = { ...data, baseline: "Limited available" }
-        break
-      default:
-        baselineData = { ...data, baseline: "" }
-    }
-
-    return {
-      ...property,
-      baselineData,
-    }
-  })
-}
-
 const main = async () => {
   p.intro(c.magenta(`Generating Yamada UI styles`))
 
@@ -260,14 +267,17 @@ const main = async () => {
         p.note(message, `Excluded properties`)
       },
     )
-    const computedProperties = computeBaseline(excludedProperties)
-    const styles = computedProperties
+    // const computedProperties = computeBaseline(excludedProperties)
+
+    const styles = excludedProperties
       .map((property) => {
+        const isAtRule = property.property_type === "at-rule"
         const { type, deprecated = false } = cssTypes[property.prop] ?? {}
 
-        if (!type) return
+        if (!type && !isAtRule) return
+        if (isAtRule) return { ...property, type: "", deprecated }
 
-        return { ...property, type, deprecated }
+        return { ...property, type: type as string, deprecated }
       })
       .filter((style) => !isUndefined(style))
 

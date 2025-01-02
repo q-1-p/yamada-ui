@@ -1,8 +1,9 @@
 import type { ThemeToken, Transforms } from "@yamada-ui/react"
-import type { BaselineData, CSSProperty, Properties } from "."
+import type { CSSProperty, Properties } from "."
 import type { TransformOptions } from "./transform-props"
 import type { UIOptions } from "./ui-props"
 import { pseudoSelectors, toKebabCase } from "@yamada-ui/react"
+import { baseline } from "compute-baseline"
 import { prettier } from "../utils"
 import { checkProps } from "./check"
 import { generateConfig } from "./config"
@@ -13,6 +14,10 @@ import { tokenMap, tokenPropertyMap } from "./tokens"
 import { transformMap } from "./transform-props"
 import { additionalProps, atRuleProps, uiProps } from "./ui-props"
 
+export type BaselineData = {
+  baseline: string
+} & Omit<ReturnType<typeof baseline.computeBaseline>, "baseline">
+
 const hasTransform = (
   targetTransform: Transforms,
   transforms: TransformOptions[] | undefined,
@@ -20,6 +25,49 @@ const hasTransform = (
 
 const addType = (result: string, value: string) =>
   result.endsWith(">") ? result.replace(/>$/, `${value}>`) : result + value
+
+export const computeBaseline = (property: CSSProperty | undefined) => {
+  let compatKey: null | string
+  if (!property) return null
+
+  switch (property.property_type) {
+    case "css":
+      compatKey = `css.properties.${property.name}`
+      break
+    case "at-rule":
+      compatKey = `css.at-rules.${property.name}`
+      break
+    case "svg":
+      compatKey = `svg.global_attributes.${property.name}`
+      break
+    default:
+      compatKey = null
+  }
+  const data = compatKey
+    ? baseline.computeBaseline({
+        checkAncestors: true,
+        compatKeys: [compatKey],
+      })
+    : null
+
+  if (!data) return null
+  let baselineData: BaselineData
+  switch (data.baseline) {
+    case "high":
+      baselineData = { ...data, baseline: "Widely available" }
+      break
+    case "low":
+      baselineData = { ...data, baseline: "Newly available" }
+      break
+    case false:
+      baselineData = { ...data, baseline: "Limited available" }
+      break
+    default:
+      baselineData = { ...data, baseline: "" }
+  }
+
+  return baselineData
+}
 
 const generateType = ({
   type,
@@ -78,13 +126,15 @@ const generateDocs = ({
   baselineData,
   deprecated,
   description = [],
+  isAtRule = false,
   properties,
   urls = [],
 }: {
   properties: string | string[] | undefined
-  baselineData?: BaselineData
+  baselineData?: BaselineData | null
   deprecated?: boolean
   description?: string[]
+  isAtRule?: boolean
   urls?: string[]
 }) => {
   if (!description.length) {
@@ -106,32 +156,30 @@ const generateDocs = ({
         "",
         ...urls.map((url) => (url !== "" ? `@see Docs ${url}` : "")),
       ]
+  }
 
-    if (baselineData) {
-      const { baseline, baseline_high_date, baseline_low_date, support } =
-        baselineData
-      const lowDate = baseline_low_date ?? "-"
-      const highDate = baseline_high_date ?? "-"
-      const basicInfo = [
-        `Scope: \`${baseline}\``,
-        "",
-        `Widely Available Date: \`${highDate}\``,
-        "",
-        `Newly Available Date: \`${lowDate}\``,
-      ]
-      const browsersData: string[] = []
-      support.forEach((value, key) => {
-        browsersData.push(`- ${key.id}${value ? `: ${value.version}` : ""}`)
-      })
-      description = [
-        ...description,
-        "",
-        "Baseline",
-        "",
-        ...basicInfo,
-        ...browsersData,
-      ]
-    }
+  if ((isAtRule || !description.length) && baselineData) {
+    const { baseline, baseline_high_date, baseline_low_date, support } =
+      baselineData
+    const lowDate = baseline_low_date ?? "-"
+    const highDate = baseline_high_date ?? "-"
+    const basicInfo = [
+      `@scope \`${baseline}\``,
+      `@widely_available_date \`${highDate}\``,
+      `@newly_available_date \`${lowDate}\``,
+    ]
+    const browsersData: string[] = []
+    support.forEach((value, key) => {
+      browsersData.push(`- ${key.id}${value ? `: ${value.version}` : ""}`)
+    })
+    description = [
+      ...description,
+      "",
+      "@Baseline",
+      ...basicInfo,
+      "@support_browsers",
+      ...browsersData,
+    ]
   }
 
   if (deprecated) description = [...description, "", `@deprecated`]
@@ -142,7 +190,6 @@ const generateDocs = ({
 export const generateStyles = async (
   styles: ({
     type: string
-    baselineData: BaselineData
     deprecated: boolean
   } & CSSProperty)[],
 ) => {
@@ -171,7 +218,7 @@ export const generateStyles = async (
   styles = styles.filter((style) => {
     const isExists = [
       ...Object.keys(additionalProps),
-      ...Object.keys(atRuleProps),
+      // ...Object.keys(atRuleProps),
       ...Object.keys(uiProps),
     ].includes(style.prop)
 
@@ -180,11 +227,15 @@ export const generateStyles = async (
     return !isExists
   })
 
-  styles.forEach(({ type, name, baselineData, deprecated, prop, url }) => {
+  styles.forEach((style) => {
+    let { type, name, deprecated, isSkip, prop, url } = style
+    if (isSkip) return
+
     const token = tokenMap[prop]
     const shorthands = shorthandProps[prop]
     const transforms = transformMap[prop]
     const config = generateConfig({ properties: prop, token, transforms })()
+    const baselineData = computeBaseline(style)
     const docs = generateDocs({
       baselineData,
       deprecated,
@@ -231,22 +282,27 @@ export const generateStyles = async (
   ) => {
     if (isProcessSkip) processSkipProps.push(prop)
 
-    const relatedStyles = styles.filter(({ prop }) =>
-      typeof properties === "string"
-        ? prop === properties
-        : properties?.includes(prop),
+    const isAtRule = prop.startsWith("_")
+    const relatedStyles = styles.filter(({ prop: propName }) =>
+      !isAtRule
+        ? typeof properties === "string"
+          ? propName === properties
+          : properties?.includes(propName)
+        : propName === prop,
     )
+
     const deprecated = relatedStyles.some(({ deprecated }) => deprecated)
     const urls = relatedStyles.map(({ url }) => url)
     const types = relatedStyles.map(({ type }) => type)
     const token = tokenMap[prop as Properties]
     const shorthands = shorthandProps[prop as Properties]
     const transforms = transformMap[prop as Properties]
-    const baselineData = relatedStyles.map(
-      ({ baselineData }) => baselineData,
-    )[0]
+    // const computedStyles = isAtRule
+    //   ? [computeBaseline(relatedStyles[0])]
+    //   : relatedStyles.map((style) => computeBaseline(style))
 
-    console.log(relatedStyles)
+    // TODO: relatedStyles、要するに複数のスタイルがある場合、baseline.computeBaselineに複数のcompatKeyを渡したい。
+    // const baselineData = computedStyles
 
     type = generateType({
       type: type ?? types,
@@ -265,9 +321,10 @@ export const generateStyles = async (
     })(true)
 
     const docs = generateDocs({
-      baselineData,
+      // baselineData,
       deprecated,
       description,
+      isAtRule,
       properties,
       urls,
     })
