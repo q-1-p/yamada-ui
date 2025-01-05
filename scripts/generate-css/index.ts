@@ -23,7 +23,9 @@ export interface CSSProperty {
   prop: CSSProperties
   property_type: string
   url: string
-  features?: { name: string; prop: string; url: string }[]
+  features?: ({
+    deprecated: boolean
+  } & Omit<CSSProperty, "features" | "isSkip">)[]
   isSkip?: boolean
 }
 
@@ -95,14 +97,16 @@ const getCSSProperties = (): CSSProperty[] => {
     const features = Object.keys(css["at-rules"]?.[atRule] as object).map(
       (key) => {
         const prop = key.includes("-") ? toCamelCase(key) : key
-        const { mdn_url, spec_url } =
+        const { mdn_url, spec_url, status } =
           css["at-rules"]?.[atRule]?.[key]?.__compat ?? {}
         const url =
           mdn_url ?? (isArray(spec_url) ? spec_url[0] : spec_url) ?? ""
 
         return {
           name: key,
+          deprecated: status?.deprecated ?? false,
           prop,
+          property_type: "feature",
           url,
         }
       },
@@ -267,7 +271,6 @@ const main = async () => {
         p.note(message, `Excluded properties`)
       },
     )
-    // const computedProperties = computeBaseline(excludedProperties)
 
     const styles = excludedProperties
       .map((property) => {

@@ -10,6 +10,10 @@ export interface UIOptions {
   static?: CSSObject
 }
 
+export interface AtRuleOptions extends Omit<UIOptions, "type"> {
+  type: string[]
+}
+
 export const additionalProps = {
   backdropBlur: {
     description: [
@@ -271,7 +275,7 @@ export const uiProps = {
 
 export const atRuleProps = {
   _container: {
-    type: `{ ${[
+    type: [
       "name?: StringLiteral",
       "query?: StringLiteral",
       'w?: CSS.Property.Width | number | Theme["sizes"]',
@@ -298,7 +302,7 @@ export const atRuleProps = {
       'orientation?: "portrait" | "landscape" | StringLiteral',
       "css?: CSSUIObject",
       "[key: string]: any",
-    ].join(";")}}[]`,
+    ],
     description: [
       "The `@container` of CSS at-rule.",
       "@experimental",
@@ -315,7 +319,7 @@ export const atRuleProps = {
     isProcessSkip: true,
   },
   _media: {
-    type: `{ ${[
+    type: [
       'type?: "all" | "print" | "screen" | "speech" | StringLiteral',
       "query?: StringLiteral",
       'w?: CSS.Property.Width | number | Theme["sizes"]',
@@ -374,7 +378,7 @@ export const atRuleProps = {
       'videoDynamicRange?: "standard" | "high" | StringLiteral',
       "css?: CSSUIObject",
       "[key: string]: any",
-    ].join(";")} }[]`,
+    ],
     description: [
       "The `@media` of CSS at-rule.",
       "@experimental",
@@ -391,7 +395,7 @@ export const atRuleProps = {
     isProcessSkip: true,
   },
   _supports: {
-    type: `{${["query?: StringLiteral", "css?: CSSUIObject"].join(";")}}[]`,
+    type: ["query?: StringLiteral", "css?: CSSUIObject"],
     description: [
       "The `@supports` of CSS at-rule.",
       "@experimental",
@@ -407,4 +411,4 @@ export const atRuleProps = {
     ],
     isProcessSkip: true,
   },
-} as const satisfies { [key: string]: UIOptions }
+} as const satisfies { [key: string]: AtRuleOptions }
