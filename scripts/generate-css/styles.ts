@@ -150,8 +150,8 @@ const generateDocs = ({
   return `/**\n${description.map((row) => `* ${row}`).join("\n")}\n*/`
 }
 
-const generateCompatKeys = (property: CSSProperty[], atRuleProp?: string) => {
-  return property.map(({ name, property_type: type }) => {
+const generateCompatKeys = (properties: CSSProperty[], atRuleProp?: string) => {
+  return properties.map(({ name, property_type: type }) => {
     switch (type) {
       case "css":
         return `css.properties.${name}`
@@ -186,7 +186,7 @@ export const generateBaseline = (
   style: CSSProperty[],
   atRuleProp?: string,
 ): BaselineData | null => {
-  if (style.length) return null
+  if (!style.length) return null
   const [firstKey, ...restKeys] = generateCompatKeys(style, atRuleProp).filter(
     isString,
   )
