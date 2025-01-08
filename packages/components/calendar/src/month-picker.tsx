@@ -1,4 +1,4 @@
-import type { CSSUIObject, FC, HTMLUIProps, ThemeProps } from "@yamada-ui/core"
+import type { FC, HTMLUIProps, ThemeProps } from "@yamada-ui/core"
 import type { MotionProps } from "@yamada-ui/motion"
 import type { PortalProps } from "@yamada-ui/portal"
 import type { ReactNode } from "react"
@@ -120,19 +120,16 @@ export const MonthPicker = forwardRef<MonthPickerProps, "div">((props, ref) => {
     getPopoverProps,
     onClose,
   } = useMonthPicker(computedProps)
-  const css: CSSUIObject = {
-    color,
-    h: "fit-content",
-    w: "100%",
-    ...styles.container,
-  }
 
   return (
     <DatePickerProvider value={styles}>
       <Popover {...getPopoverProps()}>
         <ui.div
           className={cx("ui-month-picker", className)}
-          __css={css}
+          __css={{
+            color,
+            ...styles.container,
+          }}
           {...getContainerProps(containerProps)}
         >
           <ui.div
