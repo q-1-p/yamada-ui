@@ -1,8 +1,10 @@
 import type { CSSObject } from "../../core"
 
 export const resetStyle: CSSObject = {
-  "*": {
+  "*, *::before, *::after": {
     boxSizing: "border-box",
+    margin: 0,
+    padding: 0,
   },
 
   "::-webkit-file-upload-button": {
@@ -10,217 +12,131 @@ export const resetStyle: CSSObject = {
     WebkitAppearance: "button",
   },
 
-  "::-webkit-search-cancel-button": {
-    WebkitAppearance: "none",
-  },
-
-  "::before, ::after": {
-    boxSizing: "inherit",
-  },
-
-  "[contenteditable]": {
-    outline: "none",
-  },
-
-  "[hidden]": {
+  ":where([hidden]:not([hidden='until-found']))": {
     display: "none !important",
   },
 
-  "[type='checkbox']": {
-    appearance: "checkbox",
-    WebkitAppearance: "checkbox",
-  },
+  "input[type='number']::-webkit-inner-spin-button, input[type='number']::-webkit-outer-spin-button":
+    { display: "none", height: "auto" },
 
-  "[type='number']::-webkit-inner-spin-button, [type='number']::-webkit-outer-spin-button":
-    {
-      display: "none",
-    },
-
-  "[type='radio']": {
-    appearance: "radio",
-    WebkitAppearance: "radio",
-  },
-
-  "[type='search']": {
+  "input[type='search']": {
     outlineOffset: "-2px",
+    WebkitAppearance: "textfield",
   },
 
-  "[type='search']::-webkit-search-decoration": {
+  "::-webkit-search-decoration, ::-webkit-search-cancel-button": {
     WebkitAppearance: "none",
   },
 
-  "[type='time']::-webkit-calendar-picker-indicator": {
-    display: "none",
-  },
-
-  a: {
-    backgroundColor: "transparent",
+  ":where(a)": {
     color: "inherit",
-    textDecoration: "none",
+    textDecoration: "inherit",
+    textUnderlineOffset: "0.2ex",
   },
 
-  "abbr[title]": {
-    borderBottom: "none",
+  "abbr:where([title])": {
     textDecoration: "underline dotted",
   },
 
-  address: {
-    fontStyle: "inherit",
+  ":where(body)": {
+    lineHeight: "inherit",
   },
 
   "b, strong": {
     fontWeight: "bolder",
   },
 
-  body: {
-    margin: 0,
+  ":where(button, label, select, summary, [role='button'], [role='option'])": {
+    cursor: "pointer",
   },
 
   "button, [type='button'], [type='reset'], [type='submit']": {
-    appearance: "none",
-    cursor: "pointer",
-    WebkitAppearance: "none",
+    WebkitAppearance: "button",
   },
 
-  "button, input": {
-    overflow: "visible",
-  },
-
-  "button, input, optgroup, select, textarea": {
-    appearance: "none",
-    background: "transparent",
-    border: 0,
-    borderRadius: 0,
+  ":where(button, input, select, textarea)": {
+    backgroundColor: "transparent",
     color: "inherit",
     font: "inherit",
-    margin: 0,
+    fontFeatureSettings: "inherit",
+    fontVariationSettings: "inherit",
+    letterSpacing: "inherit",
     outline: 0,
-    padding: 0,
-    textAlign: "inherit",
-    verticalAlign: "middle",
-    WebkitAppearance: "none",
+    wordSpacing: "inherit",
   },
 
   "button, select": {
     textTransform: "none",
   },
 
-  "button::-moz-focus-inner, [type='button']::-moz-focus-inner, [type='reset']::-moz-focus-inner, [type='submit']::-moz-focus-inner":
-    {
-      borderStyle: "none",
-      padding: 0,
-    },
-
-  "button:-moz-focusring, [type='button']:-moz-focusring, [type='reset']:-moz-focusring, [type='submit']:-moz-focusring":
-    {
-      outline: "1px dotted ButtonText",
-    },
-
-  "button[disabled], [type='button'][disabled], [type='reset'][disabled], [type='submit'][disabled]":
-    {
-      cursor: "default",
-    },
-
-  caption: {
-    textAlign: "left",
+  ":-moz-ui-invalid": {
+    boxShadow: "none",
   },
 
-  "code, kbd, samp": {
-    fontFamily: "monospace, monospace",
-    fontSize: "inherit",
+  ":-moz-focusring": {
+    outline: "auto",
   },
 
-  dd: {
-    marginLeft: 0,
+  ":where(:disabled, label:has(> :disabled, + disabled))": {
+    cursor: "not-allowed",
   },
 
-  details: {
+  "code, kbd, samp, pre": {
+    "--font-mono-fallback":
+      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New'",
+    fontFamily: "var(--global-font-mono, var(--font-mono-fallback))",
+    fontSize: "1em",
+  },
+
+  ":where(img, svg, video, canvas, audio, iframe, embed, object)": {
     display: "block",
+    verticalAlign: "middle",
   },
 
-  dt: {
-    fontWeight: "inherit",
-  },
-
-  "embed, object, iframe": {
-    border: 0,
-    verticalAlign: "bottom",
-  },
-
-  fieldset: {
-    margin: 0,
-    minWidth: 0,
-    padding: 0,
-  },
-
-  "h1, h2, h3, h4, h5, h6": {
+  ":where(p, h1, h2, h3, h4, h5, h6)": {
     fontSize: "inherit",
     fontWeight: "inherit",
-    lineHeight: "inherit",
-    margin: 0,
+    overflowWrap: "break-word",
   },
 
-  hr: {
-    border: 0,
-    borderTop: "1px solid",
-    boxSizing: "content-box",
-    clear: "both",
+  ":where(h1, h2, h3)": {
+    lineHeight: "calc(1em + 0.5rem)",
+    textWrap: "balance",
+  },
+
+  ":where(hr)": {
+    blockSize: 0,
+    border: "none",
+    borderBlockStart: "1px solid",
     color: "inherit",
-    height: 0,
-    margin: 0,
     overflow: "visible",
   },
 
-  html: {
-    lineHeight: 1.15,
-    WebkitTapHighlightColor: "transparent",
+  ":where(html)": {
+    colorScheme: "dark light",
+    "--font-fallback":
+      "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'",
+    fontFamily: "var(--global-font-body, var(--font-fallback))",
+    interpolateSize: "allow-keywords",
+    lineHeight: 1.5,
+    MozOsxFontSmoothing: "grayscale",
+    scrollbarGutter: "stable",
+    tabSize: 4,
+    WebkitFontSmoothing: "antialiased",
     WebkitTextSizeAdjust: "100%",
   },
 
-  img: {
-    borderStyle: "none",
-    verticalAlign: "bottom",
-  },
-
-  "label[for]": {
-    cursor: "pointer",
-  },
-
-  cite: {
-    fontStyle: "inherit",
-  },
-
-  legend: {
-    color: "inherit",
-    display: "table",
-    maxWidth: "100%",
-    padding: 0,
-    whiteSpace: "normal",
-  },
-
-  main: {
-    display: "block",
-  },
-
-  option: {
-    padding: 0,
-  },
-
-  "p, table, blockquote, address, pre, iframe, form, figure, dl": {
-    margin: 0,
-  },
-
-  pre: {
-    fontFamily: "monospace, monospace",
-    fontSize: "inherit",
+  "a:not([class])": {
+    color: "currentColor",
+    textDecorationSkipInk: "auto",
   },
 
   progress: {
     verticalAlign: "baseline",
   },
 
-  "select::-ms-expand": {
-    display: "none",
+  ":where(html:has(dialog:modal[open]))": {
+    overflow: "clip",
   },
 
   small: {
@@ -248,30 +164,46 @@ export const resetStyle: CSSObject = {
 
   table: {
     borderCollapse: "collapse",
-    borderSpacing: 0,
+    borderColor: "inherit",
+    textIndent: "0px",
   },
 
-  "td, th": {
-    padding: 0,
-    verticalAlign: "top",
+  ":where(textarea)": {
+    resize: "vertical",
   },
 
-  template: {
-    display: "none",
-  },
-
-  textarea: {
-    overflow: "auto",
-  },
-
-  th: {
-    fontWeight: "bold",
-    textAlign: "left",
-  },
-
-  "ul, ol": {
+  ":where(ul, ol)": {
     listStyle: "none",
-    margin: 0,
-    padding: 0,
+  },
+
+  "@media (prefers-reduced-motion: no-preference)": {
+    ":where(html:focus-within)": {
+      scrollBehavior: "smooth",
+    },
+  },
+
+  ":where(dialog, [popover])": {
+    background: "none",
+    border: "none",
+    color: "inherit",
+    inset: "unset",
+    maxHeight: "unset",
+    maxWidth: "unset",
+    overflow: "unset",
+  },
+
+  ":where(dialog:not([open], [popover]), [popover]:not(:popover-open))": {
+    display: "none !important",
+  },
+
+  ":where(.visually-hidden:not(:focus-within, :active))": {
+    border: "0 !important",
+    clipPath: "inset(50%) !important",
+    height: "1px !important",
+    overflow: "hidden !important",
+    position: "absolute",
+    userSelect: "none",
+    whiteSpace: "nowrap !important",
+    width: "1px !important",
   },
 }
